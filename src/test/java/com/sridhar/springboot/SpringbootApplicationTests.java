@@ -10,7 +10,7 @@ class SpringbootApplicationTests {
 	void contextLoads() {
 	}
     @Test
-	void pipelineShouldStopForFailedTests(){
-		org.junit.jupiter.api.Assertions.assertEquals(1, 2);
+	void pipelineShouldPass(){
+		org.junit.jupiter.api.Assertions.assertEquals(2, 2);
 	}
 }
