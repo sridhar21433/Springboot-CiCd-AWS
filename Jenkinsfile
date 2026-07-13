@@ -83,36 +83,56 @@ pipeline {
         }
 
         stage('Deploy to AWS EC2') {
-            steps {
-                sshagent(credentials: ['aws-app-server-key']) {
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no \
-                          ${APP_USER}@${APP_SERVER} "
-                            set -e
+        steps {
+        sshagent(credentials: ['aws-app-server-key']) {
+            sh '''
+                ssh -o StrictHostKeyChecking=no \
+                  ${APP_USER}@${APP_SERVER} "
+                    set -e
 
-                            echo 'Pulling latest Docker image...'
-                            docker pull ${DOCKER_IMAGE}:latest
+                    CURRENT_IMAGE=\$(docker inspect \
+                      --format='{{.Config.Image}}' \
+                      ${CONTAINER_NAME} 2>/dev/null || true)
 
-                            echo 'Removing old container if it exists...'
-                            docker rm -f ${CONTAINER_NAME} || true
+                    echo \"Current image: \$CURRENT_IMAGE\"
 
-                            echo 'Starting new container...'
+                    docker pull ${DOCKER_IMAGE}:${BUILD_NUMBER}
+
+                    docker rm -f ${CONTAINER_NAME} || true
+
+                    docker run -d \
+                      --name ${CONTAINER_NAME} \
+                      --restart unless-stopped \
+                      -p ${APP_PORT}:${APP_PORT} \
+                      ${DOCKER_IMAGE}:${BUILD_NUMBER}
+
+                    echo 'Waiting for application startup...'
+                    sleep 15
+
+                    if curl --fail http://localhost:${APP_PORT}/health; then
+                        echo 'New deployment is healthy.'
+                    else
+                        echo 'Health check failed.'
+
+                        docker rm -f ${CONTAINER_NAME} || true
+
+                        if [ -n \"\$CURRENT_IMAGE\" ]; then
+                            echo 'Rolling back to previous image...'
+
                             docker run -d \
                               --name ${CONTAINER_NAME} \
                               --restart unless-stopped \
                               -p ${APP_PORT}:${APP_PORT} \
-                              ${DOCKER_IMAGE}:latest
+                              \$CURRENT_IMAGE
+                        fi
 
-                            echo 'Removing unused Docker images...'
-                            docker image prune -f
-
-                            echo 'Deployment completed.'
-                          "
-                    '''
-                }
-            }
+                        exit 1
+                    fi
+                  "
+            '''
         }
-
+    }
+}
         stage('Verify Deployment') {
             steps {
                 script {
