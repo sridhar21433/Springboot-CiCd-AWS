@@ -1,4 +1,4 @@
-# 🚀 Automated Spring Boot CI/CD Pipeline using Jenkins, Docker, and AWS EC2
+# 🚀 End-to-End CI/CD Pipeline for Spring Boot Application
 
 ## 📌 Project Overview
 
