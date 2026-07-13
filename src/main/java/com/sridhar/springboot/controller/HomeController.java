@@ -8,7 +8,7 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "Hello! Spring Boot application deployed using Jenkins, Docker and AWS EC2.";
+        return "Version 2 deployed automatically from GitHub using Jenkins CI/CD!";
     }
 
     @GetMapping("/health")
